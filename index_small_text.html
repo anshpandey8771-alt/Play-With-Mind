@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TicTac Neon</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f172a, #1e1b4b);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* --- SPLASH / LOADING SCREEN STYLES --- */
+    #splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0f172a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+
+    /* Size reduced by 50% (from 2.5rem to 1.25rem) */
+    .splash-title-custom {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #38bdf8, #f43f5e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      text-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+      animation: pulse 2s infinite alternate;
+    }
+
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .loader-bar {
+      width: 220px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .loader-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #38bdf8, #f43f5e);
+      border-radius: 10px;
+      transition: width 0.03s linear;
+    }
+
+    /* Size reduced by 50% (from 1.2rem to 0.6rem) */
+    .loader-text {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+
+    /* --- GAME SCREEN STYLES --- */
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0.95);
+      transition: opacity 0.6s ease 0.4s, transform 0.6s ease 0.4s;
+    }
+
+    body.loaded .game-container {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .turn-display {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 25px;
+      padding: 10px 25px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 50px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      letter-spacing: 2px;
+      transition: all 0.3s ease;
+    }
+
+    .turn-x {
+      color: #38bdf8;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+
+    .turn-o {
+      color: #f43f5e;
+      text-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 12px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .cell {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: 900;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .cell:hover {
+      background: rgba(255, 255, 255, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .cell.x {
+      color: #38bdf8;
+      text-shadow: 0 0 15px rgba(56, 189, 248, 0.8);
+      animation: pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .cell.o {
+      color: #f43f5e;
+      text-shadow: 0 0 15px rgba(244, 63, 94, 0.8);
+      animation: pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .cell.winning {
+      background: rgba(255, 255, 255, 0.25);
+      transform: scale(1.05);
+    }
+
+    .restart-btn {
+      margin-top: 30px;
+      padding: 12px 35px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    .restart-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6);
+    }
+
+    .restart-btn:active {
+      transform: translateY(0);
+    }
+
+    /* --- ANIMATIONS --- */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.05); }
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @media (max-width: 400px) {
+      .board {
+        grid-template-columns: repeat(3, 85px);
+        grid-template-rows: repeat(3, 85px);
+        gap: 10px;
+      }
+      .cell {
+        font-size: 2.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SPLASH / LOADING SCREEN -->
+  <div id="splash-screen">
+    <div class="splash-title-custom">PLAY WITH MIND</div>
+    <div class="loader-container">
+      <div class="loader-bar">
+        <div class="loader-fill" id="loaderFill"></div>
+      </div>
+      <div class="loader-text" id="loaderText">0%</div>
+    </div>
+  </div>
+
+  <!-- GAME CONTAINER -->
+  <div class="game-container">
+    <div class="turn-display" id="status"><span class="turn-x">X</span></div>
+
+    <div class="board" id="board">
+      <div class="cell" data-index="0"></div>
+      <div class="cell" data-index="1"></div>
+      <div class="cell" data-index="2"></div>
+      <div class="cell" data-index="3"></div>
+      <div class="cell" data-index="4"></div>
+      <div class="cell" data-index="5"></div>
+      <div class="cell" data-index="6"></div>
+      <div class="cell" data-index="7"></div>
+      <div class="cell" data-index="8"></div>
+    </div>
+
+    <button class="restart-btn" id="restartBtn">↻</button>
+  </div>
+
+  <script>
+    // Real 0% to 100% Animated Loading Logic
+    window.addEventListener('DOMContentLoaded', () => {
+      const loaderFill = document.getElementById('loaderFill');
+      const loaderText = document.getElementById('loaderText');
+      const splash = document.getElementById('splash-screen');
+
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 1;
+        loaderFill.style.width = progress + '%';
+        loaderText.textContent = progress + '%';
+
+        if (progress >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            splash.style.opacity = '0';
+            splash.style.visibility = 'hidden';
+            document.body.classList.add('loaded');
+          }, 300);
+        }
+      }, 20);
+    });
+
+    // Game Logic
+    const cells = document.querySelectorAll('.cell');
+    const statusText = document.getElementById('status');
+    const restartBtn = document.getElementById('restartBtn');
+
+    let boardState = ["", "", "", "", "", "", "", "", ""];
+    let currentPlayer = "X";
+    let isGameActive = true;
+
+    const winningConditions = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+
+    function handleCellClick(e) {
+      const cell = e.target;
+      const index = cell.getAttribute('data-index');
+
+      if (boardState[index] !== "" || !isGameActive) return;
+
+      boardState[index] = currentPlayer;
+      cell.textContent = currentPlayer;
+      cell.classList.add(currentPlayer.toLowerCase());
+
+      checkResult();
+    }
+
+    function checkResult() {
+      let roundWon = false;
+      let winningCombo = [];
+
+      for (let i = 0; i < winningConditions.length; i++) {
+        const [a, b, c] = winningConditions[i];
+        if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
+          roundWon = true;
+          winningCombo = [a, b, c];
+          break;
+        }
+      }
+
+      if (roundWon) {
+        winningCombo.forEach(idx => cells[idx].classList.add('winning'));
+        statusText.innerHTML = `<span class="turn-${currentPlayer.toLowerCase()}">${currentPlayer} WINNER!</span>`;
+        isGameActive = false;
+        return;
+      }
+
+      if (!boardState.includes("")) {
+        statusText.innerHTML = `<span>DRAW!</span>`;
+        isGameActive = false;
+        return;
+      }
+
+      switchPlayer();
+    }
+
+    function switchPlayer() {
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+      const colorClass = currentPlayer === "X" ? "turn-x" : "turn-o";
+      statusText.innerHTML = `<span class="${colorClass}">${currentPlayer}</span>`;
+    }
+
+    function restartGame() {
+      boardState = ["", "", "", "", "", "", "", "", ""];
+      currentPlayer = "X";
+      isGameActive = true;
+      statusText.innerHTML = `<span class="turn-x">X</span>`;
+      
+      cells.forEach(cell => {
+        cell.textContent = "";
+        cell.className = "cell";
+      });
+    }
+
+    cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+    restartBtn.addEventListener('click', restartGame);
+  </script>
+</body>
+</html>
